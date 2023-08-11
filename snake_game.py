@@ -27,20 +27,30 @@ def game_over():
     pygame.quit()
     sys.exit()
 
-def detect_face_movement(p1, p2):
-    # Return the direction of face movement
-    x_diff = p2.parts()[27].x - p1.parts()[27].x
-    y_diff = p2.parts()[27].y - p1.parts()[27].y
-    if x_diff > movement_threshold:
-        return 'RIGHT'
-    elif x_diff < -movement_threshold:
-        return 'LEFT'
-    elif y_diff > movement_threshold:
-        return 'DOWN'
-    elif y_diff < -movement_threshold:
-        return 'UP'
+def calculate_face_center(shape):
+    x = (shape.parts()[27].x + shape.parts()[28].x) // 2
+    y = (shape.parts()[27].y + shape.parts()[28].y) // 2
+    return (x, y)
+
+def detect_face_movement(neutral_center, p2):
+    # Calculate the current face center
+    p2_center = calculate_face_center(p2)
+
+    x_diff = p2_center[0] - neutral_center[0]
+    y_diff = p2_center[1] - neutral_center[1]
+    
+    if abs(x_diff) > movement_threshold:
+        if x_diff > 0:
+            return 'RIGHT'
+        else:
+            return 'LEFT'
+    elif abs(y_diff) > movement_threshold:
+        if y_diff > 0:
+            return 'DOWN'
+        else:
+            return 'UP'
     else:
-        return ''
+        return None
 
 def draw_snake(snake_pos):
     for pos in snake_pos:
@@ -58,7 +68,7 @@ def update_snake_pos(snake_pos, direction):
 
     return snake_pos
 
-face_p1 = None
+neutral_center = None
 while True:
     win.fill((0, 0, 0))
     for event in pygame.event.get():
@@ -79,17 +89,17 @@ while True:
     for rect in faces:
         shape = predictor(frame, rect)
 
-        if face_p1 is not None:
-            movement = detect_face_movement(face_p1, shape)
-            if movement:
+        if neutral_center is None:
+            neutral_center = calculate_face_center(shape)
+        else:
+            movement = detect_face_movement(neutral_center, shape)
+            if movement is not None:
                 direction = movement
-
-        face_p1 = shape
 
     snake_pos = update_snake_pos(snake_pos, direction)
 
     # Game over when snake is outside the screen
-    if snake_pos[0][0] >= 600 or snake_pos[0][0] < 0 or snake_pos[0][1] >= 600 or snake_pos[0][1] < 0:
+    if snake_pos[0][0] >= 650 or snake_pos[0][0] < 0 or snake_pos[0][1] >= 650 or snake_pos[0][1] < 0:
         game_over()
 
     draw_snake(snake_pos)
